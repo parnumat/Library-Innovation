@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Library</title>
+<link rel="stylesheet" type="text/css" href="css/css.css">
+<script src="jquery-1.11.3.min.js"></script>
+<script src="mqttws31.js"></script>
+<style>
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+#status {
+	background: #333;
+	color: #FFF;
+	border-radius: 3px;
+	font-weight: bold;
+	padding: 3px 6px;
+}
+
+#status.connect {
+	background: #E18C1A;
+	color: #FFF;
+}
+
+#status.connected {
+	background: #00AE04;
+	color: #FFF;
+}
+
+#status.error {
+	background: #F00;
+	color: #FFF;
+}
+
+button {
+	font-size: 32px;
+}
+</style>
+<script>
+var config = {
+	mqtt_server: "m11.cloudmqtt.com",
+	mqtt_websockets_port: 35714,
+	mqtt_user: "hapoinwt",
+	mqtt_password: "2LwT2ZsXo8Tq"
+};
+
+$(document).ready(function(e) {
+	// Create a client instance
+	client = new Paho.MQTT.Client(config.mqtt_server, config.mqtt_websockets_port, "web_" + parseInt(Math.random() * 100, 10)); 
+	//Example client = new Paho.MQTT.Client("m11.cloudmqtt.com", 32903, "web_" + parseInt(Math.random() * 100, 10));
+	
+	// connect the client
+	client.connect({
+		useSSL: true,
+		userName: config.mqtt_user,
+		password: config.mqtt_password,
+		onSuccess: function() {
+			// Once a connection has been made, make a subscription and send a message.
+			// console.log("onConnect");
+			$("#status").text("Connected").removeClass().addClass("connected");
+			client.subscribe("/ESP/OLED01");
+			mqttSend("/ESP/OLED01", "ON");
+		},
+		onFailure: function(e) {
+			$("#status").text("Error : " + e).removeClass().addClass("error");
+			// console.log(e);
+		}
+	});
+	
+	client.onConnectionLost = function(responseObject) {
+		if (responseObject.errorCode !== 0) {
+			$("#status").text("onConnectionLost:" + responseObject.errorMessage).removeClass().addClass("connect");
+			setTimeout(function() { client.connect() }, 1000);
+		}
+	}
+	
+	client.onMessageArrived = function(message) {
+		// $("#status").text("onMessageArrived:" + message.payloadString).removeClass().addClass("error");
+		console.log(message.payloadString);
+	}
+
+	$("#BookName1").click(function(e) {
+        mqttSend("/ESP/OLED01", "A1:B1:ROW1");
+    });
+	
+	$("#BookName2").click(function(e) {
+        mqttSend("/ESP/OLED02", "A2:B2:ROW1");
+    });
+	$("#BookName3").click(function(e) {
+        mqttSend("/ESP/OLED02", "A3:B2:ROW2");
+    });
+});
+
+var mqttSend = function(topic, msg) {
+	var message = new Paho.MQTT.Message(msg);
+	message.destinationName = topic;
+	client.send(message); 
+}
+</script>
+</head>
+<body>
+	<div class="wallpaper">
+		<div class="paper">
+			<div class="data">
+				<h1 style="color:white;">Book List:</h1>
+				<h3 style="color:white;">Library: <span id="status" class="connect">Connect...</span></h3>
+				<!-- <hr /> -->
+				<h2 style="color:white;">BOX1: <h2>
+				<button id="BookName1"  >A1: An Introduction to Computer Networks.</button><br>
+				<h2 style="color:white;">BOX2: <h2>
+				<button id="BookName2" >A2: Compact Anthology of World Literature.</button><br><br>
+				<button id="BookName3" >A3: Business Information Systems: Design an App for That.</button><br>
+			</div>
+		</div>
+	</div>
+</body>
+
+</html>
